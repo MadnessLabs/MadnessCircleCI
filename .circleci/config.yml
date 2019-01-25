@@ -1,0 +1,42 @@
+version: 2.0
+jobs:
+  build:
+    branches:
+      only:
+        - master
+    
+    docker:
+      - image: node:8.15
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - restore_cache:
+        keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      
+      - run:
+          name: Install App Dependencies
+          command: npm install
+      
+      - run: 
+          name: Install Backend Dependencies
+          command: cd functions && npm install
+
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }} 
+
+      - run:
+          name: Run Tests
+          command: npm run test
+      
+      - run:
+          name: Run Build
+          command: npm run build
+      
+      - run: ./node_modules/.bin/firebase deploy --token="$FIREBASE_DEPLOY_TOKEN"
